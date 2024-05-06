@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="icon" href="../icon.png">
+  <link rel="stylesheet" href="../style.css">
+  <title>Documentation - Chess Sandbox</title>
+  <style>
+    article {
+      width: 40rem;
+      font-size: 1.125rem;
+      line-height: 1.675rem;
+      margin: 8rem auto;
+      user-select: text;
+    }
+    
+    h2 {
+      font-weight: normal;
+      color: var(--color);
+      margin: 1rem 0;
+      margin-top: 3rem;
+      font-size: 1.5rem;
+    }
+    
+    code:not(pre code) {
+      font-size: 1rem;
+      display: inline-block;
+      background-color: #444;
+      padding: 0 0.25rem;
+      border-radius: 0.25rem;
+      font-family: monospace;
+    }
+    
+    li {
+      margin: 0.25rem 0;
+    }
+    
+    pre {
+      font-family: inherit;
+    }
+    
+    pre code {
+      background-color: var(--black);
+      font-size: 1rem;
+      line-height: 1.125rem;
+      border: solid 0.125rem var(--gray);
+      display: block;
+      padding: 1rem;
+      border-left-width: 1rem;
+      tab-size: 2rem;
+      font-family: monospace;
+    }
+    
+    a.copy {
+      float: right;
+      margin: 1rem;
+      color: var(--gray);
+    }
+    
+    a.copy:hover {
+      color: var(--white);
+    }
+    
+    header {
+      border: solid 0 var(--gray);
+      border-width: 0.125rem 0;
+      padding: 1rem 2rem;
+    }
+    
+    header h1 {
+      font-weight: normal;
+      font-size: 1.5rem;
+    }
+    
+    #toc li a:hover::after {
+      content: ' ->';
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <p><a href="../">Home</a></p>
+  </div>
+  <article>
+    <header>
+      <h1>Chess Engine Documentation</h1>
+      <ul id="toc"></ul>
+    </header>
+    <h2>In short</h2>
+    <p>To make a custom ruleset, create a .js file that defines:</p>
+    <ul>
+      <li>New piece types in terms of their available moves, images, and a few other things</li>
+      <li>The setup of the board at the start of the game, where each tile specifies their type, team, and direction</li>
+    </ul>
+    <p><a href="https://github.com/Astronomy487/astronomy487.github.io/tree/master/projects/chess/rules">Here</a> is a folder of variants I've programmed that you can reference when making your own ruleset.</p>
+    <p>Once you have that .js, link it here to play it:</p>
+    <input id="url_loader" placeholder="put ruleset URL here...">
+    <script>document.getElementById("url_loader").value = "";</script>
+    <button onclick="if (document.getElementById('url_loader').value.trim().length) location.href = 'http://astronomy487.github.io/projects/chess?ruleset=' + document.getElementById('url_loader').value.trim();">Load </button>
+    <h2>Main architecture</h2>
+    <p>The board is a 2D array of tiles, where each tile is one of three things:</p>
+    <ul>
+      <li>An empty cell (stored as 1, use variable <code>empty_cell</code>)</li>
+      <li>An void/out-of-bounds cell (stored as 0, use variable <code>oob_cell</code>)</li>
+      <li>A piece object</li>
+    </ul>
+    <p>A piece object (i.e. a tile with a piece on it) contains the following attributes:</p>
+    <ul>
+      <li><code>team</code>: The team it belongs to, where 0 is white, 1 is black, etc.</li>
+      <li><code>direction</code>: The direction the piece faces, where 0 is up, 1 is left, 2 is down, and 3 is right. Directions usually but do not always correspond with others on their team. All specified moves of a piece are rotated to align with this direction.</li>
+      <li><code>state</code>: A primitive value that denotes any hidden information about the piece. It is used to enforce rules surrounding castling, en passant, double advancing, etc.</li>
+      <li><code>type</code>: A piece definition. All instances of a piece of the same type should refer to the same piece definition object. These definitions should be stored in the catalogue object <code>c</code> (i.e. <code>c.bishop</code> is the definition that all bishop objects point to).</li>
+    </ul>
+    <p>Here is what a piece object looks like. In thie case, <code>black_quee</code>:</p>
+    <pre><code>{
+	team: 1,
+	direction: 2,
+	state: 0,
+	type: c.queen
+}</code></pre>
+    <h2>Piece definitions</h2>
+    <p>The piece definitions include:</p>
+    <ul>
+      <li><code>name</code>: The text name for this piece</li>
+      <li><code>svg</code>: An array of square images to be used for this piece type. <code>svg[0]</code> is used for white, <code>svg[1]</code> for black, etc.</li>
+      <li><code>worth</code>: The material value of this piece, where pawns are worth 1, bishops 3, knights 3, rooks 5, queens 9, and kings 4.</li>
+      <li><code>moves</code>: An array of "move objects" which define the ways this piece is allowed to move</li>
+    </ul>
+    <p>The piece definitions also include these two optional fields:</p>
+    <ul>
+      <li><code>royal</code>: A boolean denoting that the goal of the game is to capture this piece. Players are forced to protect pieces with the royal tag from capture. If the global boolean <code>forbid_self_check</code> is false, then the goal is to directly capture the opponent's royal piece (instead of merely checkmating it).</li>
+      <li><code>promotes</code>: An array of other piece definitions that this piece can promote to when it faces an out-of-bounds tile and out-of-bounds tile on either side of it as well.</li>
+    </ul>
+    <h2>Move definitions</h2>
+    <p>Each element in the array of move definitions has at least two fields: the <code>motion</code> (vector offset from piece origin) and the <code>type</code> (what to do with that vector). There are many more optional fields.</p>
+    <p>When the generation code runs, a counter travels along the move's offset vector until it hits out-of-bounds or another piece. The <code>type</code> determines what parts of that ray/endpoint can be interacted with, and how. Here are all the types:</p>
+    <ul>
+      <li><code>"normal"</code>:  It can move anywhere on this ray. If that piece belongs to an enemy, it can be captured.</li>
+      <li><code>"capture"</code>: It must capture an enemy piece at the end. This move is never peaceful.</li>
+      <li><code>"peaceful"</code>: It can move anywhere on this ray, but not at the endpoint. This move is always peaceful.</li>
+      <li><code>"ranged"</code>: It can defeat an enemy piece at the end of the ray, but the self does not move at all.</li>
+      <li><code>"convert"</code>: It can convert an enemy piece to the self's team.</li>
+      <li><code>"castle"</code>: A special case for handling castling, the only movement involving two pieces.</li>
+    </ul>
+    <p>Here are the move definitions for bishop, all of which are normal.</p>
+    <pre><code>c.bishop.moves = [
+  {type: "normal", motion: [1, 1]},
+  {type: "normal", motion: [1, -1]},
+  {type: "normal", motion: [-1, 1]},
+  {type: "normal", motion: [-1, -1]}
+];</code></pre>
+    <p>Sliding pieces include just a motion vector. A leaping piece like a knight includes the <code>limit</code> property in the move definition to specify the maximum number steps that motion vector can be taken. Here is the move definitions for the knight:</p>
+    <pre><code>c.knight.moves = [
+  {type: "normal", motion: [2, 1], limit: 1},
+  {type: "normal", motion: [2, -1], limit: 1},
+  {type: "normal", motion: [-2, 1], limit: 1},
+  {type: "normal", motion: [-2, -1], limit: 1},
+  {type: "normal", motion: [1, 2], limit: 1},
+  {type: "normal", motion: [1, -2], limit: 1},
+  {type: "normal", motion: [-1, 2], limit: 1},
+  {type: "normal", motion: [-1, -2], limit: 1}
+];</code></pre>
+    <!--<p>There's a lot of redundancy for rotational symmetry, but I don't want to include any auto-rotation so that there's no obstacles for direction-specific pieces like pawns.</p>-->
+    <p>The other optional fields for each move object are:</p>
+    <ul>
+      <li><code>mandatory_collateral</code>: A single vector coordinate. There must be an enemy piece on that tile, and it will be defeated in making this move. The vector can also include third and fourth elements, respectively used for the name and state of the collateral piece. Used for en passant and checkers.</li>
+      <li><code>required_state</code>: The state the piece object must be in to take this move.</li>
+      <li><code>new_state</code>: The state this piece object will become if this move is taken.</li>
+      <li><code>void_condition</code>: A vector coordinate or array of vector coordinates. All specified tiles must be out-of-bounds for this move to happen.</li>
+      <li><code>empty_condition</code>: A vector coordinate or array of vector coordinates. All specified tiles must be empty (but not out-of-bounds) for this move to happen.<!--This is circumstancially useful as a substitute for ordinary offset rays, particularly in cases like the Rose piece, where the offset changes on each iteration of the ray.--></li>
+    </ul>
+    <p>All coordinate vectors are relative to the location and direction of the piece in question. The first coordinate is horizontal motion, and the second coordinate is vertical motion where positive is forward.</p>
+    <p>In all, here's what a full piece definition might look like.</p>
+    <pre><code>c.pawn = {
+	name: "pawn",
+	svg: [
+		"https://.../Chess_plt45.svg",
+		"https://.../Chess_pdt45.svg"
+	],
+	worth: 1,
+	moves: [{
+		//move forward
+		type: "peaceful", motion: [0, 1],
+		limit: 1, new_state: 1
+	}, {
+		//double forward
+		type: "peaceful", motion: [0, 2],
+		limit: 1, empty_condition: [0, 1],
+		new_state: 2, required_state: 0},
+	}, {
+		//diagonal capture right
+		type: "capture", motion: [1, 1],
+		limit: 1, new_state: 1
+	}, {
+		//diagonal capture left
+		type: "capture", motion: [-1, 1],
+		limit: 1, new_state: 1
+	}, {
+		//en passant right
+		type: "peaceful", motion: [1, 1],
+		limit: 1, mandatory_collateral: [1, 0, "pawn", 2],
+		new_state: 1
+	}, {
+		//en passant left
+		type: "peaceful", motion: [-1, 1],
+		limit: 1, mandatory_collateral: [-1, 0, "pawn", 2],
+		new_state: 1
+	}],
+ 	promotes: [c.queen, c.bishop, c.rook, c.knight]
+};</code></pre>
+    <h2>Game structure and global functions</h2>
+    <p>When the game loads, menu_script.js is run. It parses key-value pairs in the URL's query string. If any <code>?ruleset=</code> is provided, that script will run. A modal menu is populated with game options, which are read when the game itself starts.</p>
+    <p>Here is a list of some of the important global functions:</p>
+    <ul>
+      <li><code>start_game()</code> reads the modal's settings, creates the board display, and begins play.</li>
+      <li><code>update_display_all()</code> and <code>highlight_appropriate_squares()</code> are used to update the images and colors of tiles on the board to match the current board state and whatever selection the user has made.</li>
+      <li><code>do_turn()</code> is used to handle the start of a new turn: reassigning the <code>turn</code> counter, the <code>board_history</code>, and calculating <code>available_moves</code>. There is also <code>undo_turn(n)</code>.</li>
+      <li><code>find_moves(turn, board, checking_royal_threat = false, royal_team)</code> is the long function that determines all possible pseudo-legal moves a piece on team <code>turn</code> could make. Each move object contains these attributes:
+      <ul>
+        <li><code>origin</code>: The coordinates for the original piece's position.</li>
+        <li><code>destination</code>: The coordinates for the destination. <code>origin</code> and <code>destination</code> determine which tiles must be clicked to make a move, and which tiles are highlighted after the move.</li>
+        <li><code>result</code>: A 2D board array that has been dereferenced and modified frmo the original.</li>
+      </ul>
+      If <code>checking_royal_threat</code>, it will instead return true if team <code>turn</code> can capture <code>royal_team</code>'s royalty instead. That functionality is used in <code>find_legal_moves(turn, board)</code>, which filters all non-legal moves that would put one's own royalty into check. There are also the helper functions <code>royalty_threatened</code> and <code>royalty_threatened_by</code>.</li>
+      <li><code>end_game(kind)</code> runs when the game is over due to <code>"Checkmate"</code>, <code>"Stalemate"</code>, or <code>"Royal capture"</code> if <code>forbid_self_check</code> is false.</li>
+      <li><code>best_move_for(team, board, depth = 3)</code> uses a slow implementation of a min-max search algorithm (I call it Sockfish) to determine the "ideal" move. <code>computer_turn()</code> lets a CPU opponent use <code>best_move_for</code> to make a move.</li>
+      <li>Helper functions <code>in_bounds</code>, <code>copy_board</code>, <code>rotate</code>, <code>get_celement</code>, and <code>board_from_simple_fen</code></li>
+    </ul>
+    <h2>Creating a ruleset</h2>
+    <p>A ruleshet should be a .js file that adds piece types to <code>c</code> and populates the board with piece objects as defined above. You can use whatever JavaScript to get to that point (for example, <a href="..?ruleset=rules/960.js">Chess960</a> uses RNG to order the back rank).</p>
+    <p>Here are some metadata variables that a ruleset can also specify:</p>
+    <ul>
+      <li><code>rules_name</code>: The name of the custom ruleset</li>
+      <li><code>rules_description</code>: A brief description of the ruleset</li>
+      <li><code>forbid_self_check</code>: True by default, forcing rules surrounding check and checkmate. If false, you win by directly capturing royalty instead.</li>
+      <li><code>team_names</code>: An array corresponding to the color names of the teams. Any CPU opponents will have <code>" (CPU)"</code> appended to their name.</li>
+      <li><code>ai_type</code>: What kind of algorithm the CPU opponents should use to make their moves. On most variants, <code>"minimax"</code> is good enough. On particularly slow variants with lots of open positions, <code>"heuristic"</code> is better. <code>"random"</code> also exists. the value of <code>ai_type</code> is suggested to a user, but they can configure it on the setup page.</li>
+    </ul>
+    <p>For examples of rulesets I've made, check out <a href="https://github.com/Astronomy487/astronomy487.github.io/tree/master/projects/chess/rules">.../chess/rules</a>.</p>
+    <h2>Things left to do / ongoing complaints</h2>
+    <p>A list of ongoing thoughts about things I don't quite like about this engine yet, roughly ordered from most to least concerning.</p>
+    <ul>
+      <li>If several valid moves are possible but their <code>origin</code> and <code>destination</code> coordinates match, then only one can really be accessed in the UI to accept a move. Same problem with choosing what piece to promote a pawn to</li>
+      <li>Sockfish is just too slow. I either need to do some very smart pruning, or lean heavily on heuristics, or lean only on heuristics</li>
+      <li>En passant is not "forced" to happen then; pawns rest in state 2 until they are pushed further or are captured. In actual chess, a pawn goes down to state 1 if not immediately captured en passant in state 2
+        <ul>
+          <li>One way to resolve this is to let their be an auxiliary function that is run on the board array as part of the "result" of making a move. That would be a free JS function that variants can define however they want. In the case of en passant, it could set any state 2 pawns other than those whose turn it was back into state 1</li>
+          <li>It could also help enforce the weird capture rules surrounding variants like Hnefatafl (capture is contextual and depends on the positions of several pieces, rather than being an action performed by an individual piece)</li>
+          <li>Such an auxiliary function would also enable "radioactive decay chess" where every piece has a 0.001% chance of decaying into nothing (or a weaker piece?) on each frame. Royal threat detection would not pick up on anything from such an auxiliary function unless I refactored <code>find_legal_moves</code> to use <code>royal_count</code> and just abandon <code>royalty_threatened</code>/<code>royalty_threatened_by</code></li>
+          <li>This would also enable Conway's Game of Chess</li>
+        </ul>
+      </li>
+      <li>The check system is entirely independent of move generation, so castling is allowed while under check, but it shouldn't be. I don't know how to fix this without massively changing the relationship of check checks and move generation</li>
+      <li>A few move systems (<code>mandatory_collateral</code> and <code>"castle"</code>) look for other pieces and identify them by their text name instead of by referencing their piece definition. I think referencing piece definition would be better</li>
+      <li><code>mandatory_collateral</code> only accepts a single other collateral piece. Maybe it should also handle an array of mandatory collaterals (like the way <code>void_condition</code> and <code>empty_condition</code> can be vectors or arrays of vectors). Also, maybe there should be a similar <code>optional_collateral</code>, or maybe even collateral of the home team (sacrifice)? Although I guess that can be handled with both collateral and non-collateral rules together</li>
+    </ul>
+    <!--<hr>
+    <p>Chess Sandbox by <a href="http://astronomy487.github.io/">Astro</a>. Chess icons taken from <a href="https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces">Wikimedia's SVG chess pieces
+list</a></p>-->
+  </article>
+  <script src="../script.js"></script>
+  <script src="../common_pieces.js"></script>
+  <script>
+    let html = '';
+    for (h of document.getElementsByTagName("h2")) {
+      let text = h.innerText.toLowerCase().replace(/[^a-z]/g, '');
+      h.setAttribute("id", text);
+      html += '<li><a href="#'+text+'">'+h.innerText+'</a></li>';
+    }
+    document.getElementById("toc").innerHTML = html;
+    
+    for (pre of document.getElementsByTagName("pre")) {
+      //pre.getElementsByTagName("code")[0].insertAdjacentHTML("beforebegin", '<a class="copy" onclick="console.log(this.parentElement)">Copy</a>');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="style.css">
+  <title id="title">Chess Sandbox</title>
+  <style id="rotation_css"></style>
+</head>
+<body>
+  <script src="script.js"></script>
+  <script src="common_pieces.js"></script>
+  <main><table id="display_table"></table></main> <!-- game board -->
+  <div id="sidebar">
+    <p id="current_turn_display"></p>
+    <p><a onclick="window.location.href = (''+location).substring(0, (''+location).indexOf('?'));">Home</a></p>
+  </div>
+  <div id="menu">
+    <!--<table style="margin-top: 8rem; user-select: none;"><td style="background-color: var(--color); transform: scale(2); border-radius: 1rem;">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg" draggable="false">
+    </td></table>-->
+    <table style="margin-top: 8rem; user-select: none; transform: scale(2);"><td style="background-color: var(--color); border-radius: 1rem;">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg" draggable="false">
+    </td></table>
+    <h1>Chess Sandbox</h1>
+    <p><a href="?ruleset=rules/standard.js">Start playing standard game...</a></p>
+    <p><b>Chess Sandbox</b> is a generalized sandbox for creating and playing chess variants and chess-adjacent games. You can use it to play from a custom board position, or you can define new pieces and play with them. It is accomplished with client-side JavaScript.</p>
+    <a class="card" href="fengen">
+      <h2>FENGEN</h2>
+      A supplemental user-friendly tool for creating positions using the six standard pieces on two teams.
+    </a>
+    <a class="card" style="float: right;" href="documentation">
+      <h2>Documentation</h2>
+      Explanations of how the code base works and how custom rulesets are defined in JavaScript.
+    </a>
+  </div>
+  <div id="modal"></div>
+  <script src="menu_script.js"></script>
+  <script src="../dynamicaccentcolor.js"></script>
+</body>
+</html>

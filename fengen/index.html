@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="icon" href="../icon.png">
+  <link rel="stylesheet" href="../style.css">
+  <title>FENGEN - Chess Sandbox</title>
+  <style>
+    td:not(.coords) {
+      cursor: pointer;
+    }
+    
+    #palette_table {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      right: 2rem;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <label style="display: inline-block; width: 4rem;">Black:</label>
+    <select onchange="make_setup()" id="black_select"></select>
+    <br>
+    <label style="display: inline-block; width: 4rem;">White:</label>
+    <select onchange="make_setup()" id="white_select"></select>
+    <p id="material_notice"></p>
+    <p><a id="link">Use this setup</a></p>
+  </div>
+  <main><table id="table_display"></table></main>
+  <table id="palette_table">
+    <tr>
+      <td parity="0" onclick="pick_character(' ')" character=" "></td>
+      <td parity="1" onclick="pick_character('*')" character="*" style="opacity: 0.25;"></td>
+    <tr>
+      <td parity="1" onclick="pick_character('P')" character="P"><img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg"></td>
+      <td parity="0" onclick="pick_character('p')" character="p"><img src="https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg"></td>
+    </tr>
+    <tr>
+      <td parity="0" onclick="pick_character('B')" character="B"><img src="https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg"></td>
+      <td parity="1" onclick="pick_character('b')" character="b"><img src="https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg"></td>
+    </tr>
+    <tr>
+      <td parity="1" onclick="pick_character('N')" character="N"><img src="https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg"></td>
+      <td parity="0" onclick="pick_character('n')" character="n"><img src="https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg"></td>
+    </tr>
+    <tr>
+      <td parity="0" onclick="pick_character('R')" character="R"><img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg"></td>
+      <td parity="1" onclick="pick_character('r')" character="r"><img src="https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg"></td>
+    </tr>
+    <tr>
+      <td parity="1" onclick="pick_character('Q')" character="Q"><img src="https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg"></td>
+      <td parity="0" onclick="pick_character('q')" character="q"><img src="https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg"></td>
+    </tr>
+    <tr>
+      <td parity="0" onclick="pick_character('K')" character="K"><img src="https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg"></td>
+      <td parity="1" onclick="pick_character('k')" character="k"><img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg"></td>
+    </tr>
+    <tr>
+      <td character="" colspan="2" style="font-size: 1.125rem;">Piece palette</td>
+    </tr>
+  </tr></table>
+  <script src="../script.js"></script>
+  <script src="../common_pieces.js"></script>
+  <script>    
+    let mouse_down = 0;
+    document.body.onmousedown = function(){mouse_down = 1;}
+    document.body.onmouseup = function(){mouse_down = 0;}
+
+    let choices = [
+      {
+        term: "Standard setup",
+        black_fen: "rnbqkbnr/pppppppp/8/8",
+        white_fen: "8/8/PPPPPPPP/RNBQKBNR"
+      },
+      {
+        term: "No pawns",
+        black_fen: "rnbqkbnr/8/8/8",
+        white_fen: "8/8/8/RNBQKBNR"
+      },
+      {
+        term: "Gay kings",
+        black_fen: "rnbkkbnr/pppppppp/8/8",
+        white_fen: "8/8/PPPPPPPP/RNBKKBNR"
+      },
+      {
+        term: "Mongol horde",
+        black_fen: "pppppppp/nnnnnnnn/4k3/8",
+        white_fen: "8/4K3/NNNNNNNN/PPPPPPPP"
+      }
+    ];
+    
+    for (x of choices) {
+      document.getElementById("white_select").innerHTML += '<option value="'+x.white_fen+'">'+x.term+'</option>';
+      document.getElementById("black_select").innerHTML += '<option value="'+x.black_fen+'">'+x.term+'</option>';
+    }
+    document.getElementById("white_select").innerHTML += '<option value="8" hidden="true" id="secret_option_white">Customized</option>';
+    document.getElementById("black_select").innerHTML += '<option value="8" hidden="true" id="secret_option_black">Customized</option>';
+    
+    function custom_modify(row, col) {
+      let total_fen = document.getElementById("black_select").value + "/" + document.getElementById("white_select").value;
+      let old_fen = total_fen;
+      //deconstruct fen into array
+      total_fen = total_fen.replaceAll("1", " ");
+      total_fen = total_fen.replaceAll("2", "  ");
+      total_fen = total_fen.replaceAll("3", "   ");
+      total_fen = total_fen.replaceAll("4", "    ");
+      total_fen = total_fen.replaceAll("5", "     ");
+      total_fen = total_fen.replaceAll("6", "      ");
+      total_fen = total_fen.replaceAll("7", "       ");
+      total_fen = total_fen.replaceAll("8", "        ");
+      total_fen = total_fen.replaceAll("9", "         ");
+      total_fen = total_fen = total_fen.split("/");
+      for (let i = 0; i < total_fen.length; i++) {
+        total_fen[i] = total_fen[i].split("");
+      }
+      //alter this space
+      let new_character = selected_character;
+      total_fen[row][col] = new_character;
+      //reconstruct fen
+      for (let i = 0; i < total_fen.length; i++) {
+        total_fen[i] = total_fen[i].join("");
+      }
+      total_fen = total_fen.join("/");
+      total_fen = total_fen.replaceAll("         ", "9");
+      total_fen = total_fen.replaceAll("        ", "8");
+      total_fen = total_fen.replaceAll("       ", "7");
+      total_fen = total_fen.replaceAll("      ", "6");
+      total_fen = total_fen.replaceAll("     ", "5");
+      total_fen = total_fen.replaceAll("    ", "4");
+      total_fen = total_fen.replaceAll("   ", "3");
+      total_fen = total_fen.replaceAll("  ", "2");
+      total_fen = total_fen.replaceAll(" ", "1");
+      if (old_fen == total_fen) return;
+      total_fen = total_fen.split("/");
+      let black_fen = total_fen[0] + "/" + total_fen[1] + "/" + total_fen[2] + "/" + total_fen[3];
+      let white_fen = total_fen[4] + "/" + total_fen[5] + "/" + total_fen[6] + "/" + total_fen[7];
+      //whichever half is effected, change their selected option and its value to this
+      if (row >= 4) { //white
+        document.getElementById("secret_option_white").value = white_fen;
+        document.getElementById("white_select").value = white_fen;
+      } else {
+        document.getElementById("secret_option_black").value = black_fen;
+        document.getElementById("black_select").value = black_fen;
+      }
+      sfx("sfxmove.mp3", true);
+      make_setup(false);
+    }
+    
+    coords_enabled = true;
+    make_setup();
+    function make_setup(do_sfx = true) {
+      let white_fen = document.getElementById("white_select").value;
+      let black_fen = document.getElementById("black_select").value;
+      let fen = black_fen + "/" + white_fen;
+      board = board_from_simple_fen(fen);
+      {
+        let html = "";
+        for (let row_count = 0; row_count < board.length; row_count++) {
+          let row = board[row_count];
+          html += '<tr>';
+          if (coords_enabled) html += '<td class="coords">'+(board.length-row_count)+'</td>';
+          for (let col_count = 0; col_count < row.length; col_count++) {
+            let cell = row[col_count];
+            html += '<td id="cell_'+row_count+'_'+col_count+'" parity="'+((row_count+col_count)%2)+'" onmousedown="custom_modify('+row_count+','+col_count+')" onmouseover="if (mouse_down) custom_modify('+row_count+','+col_count+')">';
+            if (cell != empty_cell && cell != oob_cell)
+              html += '<img src="'+cell.type.svg[cell.team]+'" draggable="false">';
+            html += '</td>';
+          }
+          html += '</tr>';
+        }
+        html += '<tr><td class="coords"></td>';
+        if (coords_enabled) for (let col_count = 0; col_count < board[0].length; col_count++) {
+          html += '<td class="coords">'+('abcdefghijklmnopqrstuvwxyz').charAt(col_count)+'</td>';
+        }
+        html += '</tr>';
+        document.getElementById("table_display").innerHTML = html;
+        document.getElementById("table_display").setAttribute("class", "editor");
+        //any oob cells need to be made white
+        for (let row_count = 0; row_count < board.length; row_count++) for (let col_count = 0; col_count < board[row_count].length; col_count++) {
+          if (board[row_count][col_count] == oob_cell)
+            get_celement(row_count, col_count).setAttribute("oob", "true");
+        }
+      }
+      
+      let white_advantage = 0;
+      for (r of board) for (c of r) if (c != empty_cell && c != oob_cell) {
+        white_advantage += c.type.worth * (c.team ? -1 : 1);
+      }
+      let advantage_message = "Equal material";
+      if (white_advantage > 0) {
+        advantage_message = "White has +"+white_advantage+" material";
+      } else if (white_advantage < 0) {
+        advantage_message = "Black has +"+(0-white_advantage)+" material";
+      }
+      document.getElementById("material_notice").innerText = advantage_message;
+      
+      
+      let white_name = document.getElementById("white_select").selectedOptions[0].innerText;
+      let black_name = document.getElementById("black_select").selectedOptions[0].innerText;
+      let full_name = (white_name==black_name) ? white_name : white_name+" vs. "+black_name;
+      document.getElementById("link").setAttribute("href", "../index.html?fen="+fen+"&name="+full_name);
+      
+      if (do_sfx) sfx("sfxtake.mp3", true);
+    }
+    
+    let selected_character = "";
+    pick_character("P");
+    function pick_character(ch) {
+      if (ch == selected_character) return;
+      selected_character = ch;
+      for (choice of document.getElementById("palette_table").getElementsByTagName("td")) {
+        choice.setAttribute("highlight", (choice.getAttribute("character") == ch) ? "just_happened" : "");
+      }
+      sfx(" *".includes(ch) ? "sfxdeselect.mp3" : "sfxselect.mp3", true);
+    }
+  </script>
+</body>
+</html>

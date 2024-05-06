@@ -1,0 +1,332 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500&display=swap');
+
+:root {
+	--black: #292929;
+	--white: #EDEDED;
+	--gray: #555;
+	--accent: #3c4;
+	
+	--square-dark: #8ca2ad;
+	--square-light: #dee3e6;
+	--square-red: #ED8C7A;
+	--square-dark-highlight: #a2c166;
+	--square-light-highlight: #d2e787;
+	
+	--square-dark: #B58763;
+	--square-light: #F0DAB5;
+	--square-red: #ED8C7B;
+	--square-dark-highlight: #C0A765;
+	--square-light-highlight: #FBF7B7;
+}
+
+body {
+	user-select: none;
+	margin: 0;
+	background-color: var(--black);
+	font-family: Inter, sans-serif;
+	color: var(--white);
+	overflow-x: hidden;
+	--color: var(--accent);
+}
+
+/* game display */
+
+main {
+	max-height: 94vh;
+	margin-top: 3vh;
+	position: absolute;
+	width: 100%;
+	top: 50%;
+	transform: translateY(-50%) translateY(-3vh);
+}
+
+table {
+	border-collapse: collapse;
+	transition: transform 1s;
+	margin: auto;
+}
+
+::selection {
+	background: var(--white);
+	color: var(--black);
+}
+
+td {
+	width: 5rem;
+	height: 5rem;
+	text-align: center;
+	font-size: 4rem;
+	background-color: var(--square);
+	padding: 0;
+}
+
+td[parity="0"] {
+	--square: var(--square-light);
+	--square-highlight: var(--square-light-highlight);
+}
+
+td[parity="1"] {
+	--square: var(--square-dark);
+	--square-highlight: var(--square-dark-highlight);
+}
+
+td img {
+	width: 5rem;
+	height: 5rem;
+	margin: 0;
+	display: block;
+}
+
+td[highlight="origin"] {
+	background-color: var(--square-red);
+}
+
+@keyframes destination_animation {from {
+	background-color: var(--square-highlight);
+} 50% {
+	background-color: var(--square);
+} to {
+	background-color: var(--square-highlight);
+}}
+
+td[highlight="destination"] {
+	animation: 0.5s destination_animation infinite;
+}
+td[highlight="just_happened"], .editor td:hover {
+	background-color: var(--square-highlight);
+}
+
+td[highlight="owned"]:hover, td[highlight="origin"]:hover, td[highlight="destination"]:hover {
+	cursor: pointer;
+}
+
+td[fog="true"] {
+	opacity: 0.125;
+}
+td[fog="true"] img {
+	display: none;
+}
+
+td[oob="true"] {
+	opacity: 0;
+}
+
+td.coords {
+	font-size: 1.25rem;
+	width: 2rem;
+	height: 2rem;
+	color: var(--gray);
+}
+
+a, b {
+	color: var(--color);
+	text-decoration: none;
+	font-weight: normal;
+}
+
+a:hover {
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+button {
+	background-color: var(--color);
+	color: var(--black);
+	border: none;
+	font-size: 1rem;
+	font-family: inherit;
+	width: 8rem;
+	padding: 0.5rem 0;
+	cursor: pointer;
+	margin: 1rem 0;
+	margin-left: calc(100% - 8rem);
+	display: block;
+}
+
+button:hover {
+	background-color: var(--white);
+}
+
+button:hover::after {content: ' ->';}
+button:hover::before {content: '-> ';}
+
+/* the main menu article */
+
+#menu {
+	width: 48rem;
+	margin: 0 auto;
+	user-select: text;
+	padding-bottom: 6rem;
+	font-size: 1.125rem;
+	line-height: 1.5rem;
+}
+
+#menu h1 {
+	font-weight: normal;
+	font-size: 2rem;
+	width: 32rem;
+	margin: 4rem auto;
+	text-align: center;
+}
+
+#menu p {
+	width: 32rem;
+	margin: 1rem auto;
+}
+
+#menu .card {
+	width: calc(50% - 0.5rem);
+	height: 10rem;
+	border: solid 0.125rem var(--gray);
+	border-bottom-width: 1rem;
+	display: inline-block;
+	margin: 1rem 0;
+	padding: 1rem;
+	box-sizing: border-box;
+	color: inherit;
+}
+
+#menu .card:hover {
+	border-color: var(--color);
+	text-decoration: none;
+}
+
+#menu .card h2 {
+	font-weight: normal;
+	margin: 0;
+	margin-bottom: 0.5rem;
+	font-size: 1.25rem;
+	color: var(--color);
+}
+
+#menu .card:hover h2::after {content: ' ->';}
+
+#menu button {
+	background-color: var(--black);
+	color: var(--white);
+}
+
+#menu button:hover {
+	background-color: var(--color);
+	color: var(--black);
+}
+
+article input {
+	background-color: var(--black);
+	color: var(--white);
+	font-family: inherit;
+	border: none;
+	padding: 0.5rem 0;
+	font-size: 1rem;
+	text-align: center;
+	margin: 1rem 0;
+	margin-bottom: 0;
+	border: solid 0.125rem var(--black);
+	width: calc(100% - 0.25rem);
+}
+
+article input:focus {
+	outline: none;
+	border-color: var(--gray);
+}
+
+/* corner info during gameplay */
+
+#sidebar {
+	position: fixed;
+	width: 16rem;
+	bottom: 0;
+	left: 0;
+	padding: 1rem;
+	background-color: var(--black);
+	font-size: 1.125rem;
+}
+
+#sidebar p {
+	margin: 0;
+	margin-top: 0.5rem;
+}
+
+/* modal popup*/
+
+#modal {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: 28rem;
+	padding: 1rem 2rem;
+	user-select: text;
+	border: solid 0.125rem var(--gray);
+	background-color: var(--black);
+	backdrop-filter: blur(1rem);
+}
+
+#modal:empty {display: none;}
+
+#modal p {
+	width: 90%;
+}
+
+#modal h1 {
+	font-weight: normal;
+	margin: 1rem 0;
+	color: var(--color);
+	
+	/* margin: -1rem -2rem;
+	background-color: var(--color);
+	padding: 1rem;
+	color: var(--white);
+	margin-bottom: 2rem;
+	text-align: center; */
+}
+
+#modal div {
+	margin: 0.25rem 0;
+	accent-color: var(--color);
+}
+
+#modal label {
+	padding-left: 1rem;
+}
+
+#modal aside {
+	float: right;
+	color: var(--gray);
+	text-transform: uppercase;
+	margin-top: -1.5rem;
+}
+
+hr {
+	border: none;
+	margin: 1rem 0;
+	height: 0.125rem;
+	background-color: var(--gray);
+	width: 50%;
+}
+
+select {
+	margin: 0.25rem 0;
+	background-color: inherit;
+	border: none;
+	font-family: inherit;
+	color: inherit;
+	font-size: inherit;
+	height: 1.5rem;
+}
+
+select:focus {
+	color: var(--color);
+	outline: none;
+}
+
+option {
+	color: var(--white);
+}
+
+tbody, td img, td.coords {
+	transition: 1s transform;
+}
+
+#modal, .card, button, pre code {border-radius: 0.5rem !important; overflow: hidden;}
+button, .card {transition: 0.1s;}
